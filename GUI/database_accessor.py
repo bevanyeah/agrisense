@@ -1,5 +1,5 @@
 import sqlite3
-
+import time
 
 class DatabaseAccessor:
     def __init__(self):
@@ -48,22 +48,40 @@ class DatabaseAccessor:
 
         self.connect()
 
-        try:
-
-            self.cursor.execute("UPDATE Sensors SET sensor_lat =?,"
-                                " sensor_long =?,"
-                                " sensor_time=?,"
-                                " sensor_type=? WHERE sensor_id = ?;",
-                                (float(heartbeat['sensor_lat']),
-                                 float(heartbeat['sensor_long']),
-                                 int(heartbeat['properties']['timestamp']),
-                                 heartbeat['sensor_type'],
-                                 int(heartbeat['sensor_id'])))
+        if float(heartbeat['sensor_lat']) == 0 or float(heartbeat['sensor_long']) == 0 or int(heartbeat['properties']['timestamp']) == 0:
 
 
-            self.commit()
-        except:
-            print("malformed data - not inserting into database")
+            #gps is bad
+
+            try:
+                self.cursor.execute("UPDATE Sensors SET server_time=?, sensor_type =?,gps_wrong = 1 WHERE sensor_id = ?;",
+                                    (int(time.time()),
+                                     heartbeat['sensor_type'],
+                                     int(heartbeat['sensor_id'])))
+
+                self.commit()
+
+            except:
+                print("malformed data - not inserting into database")
+
+        else:
+            try:
+
+                self.cursor.execute("UPDATE Sensors SET sensor_lat =?,"
+                                    " sensor_long =?,"
+                                    " sensor_time=?,"
+                                    " sensor_type=?, server_time=?, gps_wrong = 0 WHERE sensor_id = ?;",
+                                    (float(heartbeat['sensor_lat']),
+                                     float(heartbeat['sensor_long']),
+                                     int(heartbeat['properties']['timestamp']),
+                                     heartbeat['sensor_type'],
+                                     int(time.time()),
+                                     int(heartbeat['sensor_id'])))
+
+
+                self.commit()
+            except:
+                print("malformed data - not inserting into database")
 
     def get_sensors(self):
 

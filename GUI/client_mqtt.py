@@ -1,9 +1,17 @@
-import ast
+
 import time
 import paho.mqtt.client as mqtt
 
+_MQTT_BROKER_ADDRESS = "192.168.1.221"
+
+"""
+BUilds a python dictionary from the components of the encoded payload.  This needs to be exactly right as per spec
+on the Sensor node end.
+"""
 
 def build_dict(message):
+
+
     # "sensor_id": "1",
     # "sensor_type": "mmRadar",
     # "sensor_lat": "-35.4260349",
@@ -57,13 +65,11 @@ class ClientMqtt:
 
         client_id = f"agrisense_gui_{time.time()}"
 
-        self.mqtt_client = mqtt.Client(client_id="Bevan_test_client", clean_session=True, userdata=None, protocol=mqtt.MQTTv311,
+        self.mqtt_client = mqtt.Client(client_id=client_id, clean_session=True, userdata=None, protocol=mqtt.MQTTv311,
                                            transport="tcp")
 
-        # while True:
-        #     if not self.mqtt_client.is_connected():
 
-        self.mqtt_client.connect("192.168.1.221")
+        self.mqtt_client.connect(_MQTT_BROKER_ADDRESS)
         print("Connecting..")
         self.mqtt_client.subscribe("SIT730/agrisense")
 
@@ -80,15 +86,13 @@ class ClientMqtt:
 
         #Construct the dictionary
         try:
+            #Decode from Bytestring, and then build a python dictionary with the message payload
             my_type, payload = build_dict(message.payload.decode("utf-8"))
 
             print(f"type = {my_type}")
             print(f"message = {payload}")
 
-            # message = ast.literal_eval(message)
-
             # Insert into database
-
             if my_type == "event":
                 self.database_accessor.modify_sensor(payload)
                 self.database_accessor.insert_event(payload)
